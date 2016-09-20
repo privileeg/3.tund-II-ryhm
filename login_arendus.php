@@ -1,14 +1,30 @@
 
 <?php             //täpitähtede jaoks ülevalt Encoding ja convert to UTF-8
 
-	//GET ja POSTi muutujad
-	//var_dump ($_GET);
-	//echo "<br>";
-	//var_dump ($_POST);
+	require("../../config.php");  //läheb sinna faili ja kopeerib sisu siia
+	//echo hash("sha512", "Andres");
 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	//echo "<br>";
+	//var_dump ($_POST);   var_dump näitab tüüpi 
+	//GET ja POSTi muutujad .. GET - avalik url , POST - varjatud url
+	//var_dump ($_GET);ja väärtust . NT 5.5 = float
+
+	
+	//MUUTUJAD
 	$signupEmailError = "";
 	$signupPasswordError = "";
-
+	$signupEmail = ""; //annan mingi väärtuse
+	$signupGender = "";
+	
 	// on üldse olemas selline muutuja
 	if(isset($_POST["signupEmail"])){    
 	
@@ -21,10 +37,15 @@
 			
 				$signupEmailError = "E-post on kohustuslik";
 			
+		}else{	
+			//email on olemas	
+			$signupEmail = $_POST["signupEmail"];
+			
+			
+	
 		}
 
 	}		
-	
 	
 	
 	if(isset($_POST["signupPassword"])){    
@@ -42,7 +63,7 @@
 			//siia jõuan siis kui parool oli olemas
 			//parool ei olnud tühi
 			
-			if ( strlen($_POST["signupPassword"]) < 8 ) {
+			if ( strlen($_POST["signupPassword"]) < 8 ) {                           //strlen tähendab stringi pikkust, antud juhul alla 8 on error
 				$signupPasswordError = "Parooli pikkus peab olema vähemalt 8 tähemärki ";
 
 			}
@@ -50,10 +71,6 @@
 		}
 
 	}		
-
-?>
-
-<?php
 
 	$signupEesnimiError = "";
 	$signupPerekonnanimiError = "";
@@ -83,14 +100,92 @@
 		
 		}
 	}
+	
+	// GENDER
+	if( isset( $_POST["signupGender"] ) ){
+		
+		if(!empty( $_POST["signupGender"] ) ){
+		
+			$signupGender = $_POST["signupGender"];
+			
+		}
+		
+	} 
+	
+	
+	//et salvestada, peame siin teadma et pole olnud erroreid.peab olema email ja parool
+	//kui kuskil on viga, siis edasi ei minda selle juurest
+		if ( isset($_POST["signupEmail"]) && 
+		 isset($_POST["signupPassword"]) && 
+		 $signupEmailError == "" && 
+		 empty($signupPasswordError)
+		) {
+		
+			// salvestame andmebaasi
+			echo "Salvestan... <br>";
+			
+			echo "email: ".$signupEmail."<br>";
+			echo "password: ".$_POST["signupPassword"]."<br>";
+			
+			$password = hash("sha512", $_POST["signupPassword"]);
+			
+			echo "password hashed: ".$password."<br>";
+			
+			//echo $serverUsername;
+			
+			// ÜHENDUS
+			$database = "if16_andralla";
+			$mysqli = new mysqli($serverHost, $serverUsername, $serverPassword, $database);
+			
+			
+			// meie serveris nagunii 
+			if ($mysqli->connect_error) {
+				die('Connect Error: ' . $mysqli->connect_error);
+			}
+			
+			
+			
+			//sqli rida
+			$stmt = $mysqli->prepare("INSERT INTO user_sample(email, password) VALUES (?, ?)");
+			
+			echo $mysqli->error;
+			
+			//stringina üks täht iga muutuja kohta, mis tüüp
+			//string - s
+			//integer - i
+			//float (double) - d 
+			//küsimärgid asendada muutajaga 
+			
+			$stmt->bind_param("ss", $signupEmail, $password);
+			
+			//täida käsku
+			
+			if($stmt->execute()){
+				
+				echo "salvestamine õnnestus";
+				
+			} else {
+				echo "ERROR".$stmt->error;
 
-
-
-
-
-
-
+				//panen ühenduse kinni		
+				$stmt->close();	
+				$mysqli->close();
+				
+					
+			}
+		}
+	
+	
+	
+	
+	
+	
+	
+	
+	
 ?>
+
+
 
 
 <!DOCTYPE html>
@@ -98,7 +193,7 @@
 <head>
 <title>Logi sisse või loo kasutaja</title>
 </head>
-<body style="background-color:powderblue;">   <!--See on 1 viis kuidas tausta tooni lisada-->
+<!--See on 1 viis kuidas tausta tooni lisada  <body //style="background-color:powderblue;">  -->
 	
 	
 	<h1>Logi sisse</h1> 
@@ -121,60 +216,54 @@
 	<form method="POST"> <!--POST ei kuva paroole ega asju URL'is-->               
 	
 		
-		<input name="signupEmail" placeholder="E-post" type="text"> 
-		
-		<?php echo $signupEmailError;?>
+		<input name="signupEmail" placeholder="E-post" type="text" value="<?=$signupEmail;?>" > <?php echo $signupEmailError;?>
 		
 		<br><br>
 		
-		<input type="password" placeholder="Parool" name="signupPassword"> 
-		
-			<?php echo $signupPasswordError; ?>
+		<input type="password" placeholder="Parool" name="signupPassword"> <?php echo $signupPasswordError; ?>
 		<br><br>	
-		
-		
-		
-			<input name="signupEesnimi" placeholder="Eesnimi" type="text">
+						
+		<input name="signupEesnimi" placeholder="Eesnimi" type="text"> <?php echo $signupEesnimiError;?>
+		<br><br>
 			
-			<?php echo $signupEesnimiError;?>
+		<input name="signupPerekonnanimi" placeholder="Perekonnanimi" type="text"> <?php echo $signupPerekonnanimiError;?>
+		<br>
+			
+			
+				<?php if($signupGender == "male") { ?>
+			
+					<input type="radio" name="signupGender" value="male" checked> Male<br>
+				<?php }else{ ?>
+					<input type="radio" name="signupGender" value="male"> Male<br>
+				<?php } ?>
+					
+					
+				<?php if($signupGender == "female") { ?>
+			
+					<input type="radio" name="signupGender" value="female" checked> Female<br>
+				<?php }else{ ?>
+					<input type="radio" name="signupGender" value="female"> Female<br>
+				<?php } ?>
+				
+				
+				<?php if($signupGender == "other") { ?>
+			
+					<input type="radio" name="signupGender" value="other" checked> Other<br>
+				<?php }else{ ?>
+					<input type="radio" name="signupGender" value="other"> Other<br>
+				<?php } ?>
+				
+			
+			
+			
+			
+			
 			<br><br>
-			
-			<input name="signupPerekonnanimi" placeholder="Perekonnanimi" type="text">
-			
-			<?php echo $signupPerekonnanimiError;?>
-			<br>
-			
-			<h4>Sugu</h4>
-				<input type="radio" name="Sugu" value="Mees" checked> Mees<br>
-				<input type="radio" name="Sugu" value="Naine"> Naine<br>
-				<input type="radio" name="Sugu" value="Muu"> Muu
-			
-			<br><br>
-			
-			
-			
-			<select>
-				<option value="Lääne-Virumaa">Lääne-Virumaa</option>
-				<option value="Harjumaa">Harjumaa</option>
-				<option value="Ida-Virumaa">Ida-Virumaa</option>
-				<option value="Järvamaa">Järvamaa</option>
-				<option value="Läänemaa">Läänemaa</option>
-				<option value="Põlvamaa">Põlvamaa</option>
-				<option value="Võrumaa">Võrumaa</option>
-				<option value="Viljandimaa">Viljandimaa</option>
-				<option value="Hiiumaa">Hiiumaa</option>
-				<option value="Raplamaa">Raplamaa</option>
-				<option value="Saaremaa">Saaremaa</option>
-				<option value="Jõgevamaa">Jõgevamaa</option>
-				<option value="Pärnumaa">Pärnumaa</option>
-				<option value="Tartumaa">Tartumaa</option>
-				<option value="Valgamaa">Valgamaa</option>
-			
-			</select>
-			<br><br>
-			
-			
-			
+					
+
+
+
+					
 			<input name="signupLinn" placeholder="Linn" type="text">
 			<br><br>
 					
